@@ -1,36 +1,34 @@
 using TestPackage
-using Test, Random
+using Test, Random, Base.Threads
 
-function foo(rng, n, M)
+function foo(n, M)
     println("Starting to process $(n*M) floats...")
-    buffer = 0
-    cache = zeros(n)
-    @time for j in 1:M
-        rand!(rng, cache)
-        cache .*= 10.0
-        for i in eachindex(cache)
+    buffers = zeros(Int, M)
+    seed = rand(UInt)
+    @show seed
+    @threads for j in 1:M
+        rng = Random.MersenneTwister(j+seed)
+        buffer = 0
+        for i in 1:n
             # Create a random float
-            x = cache[i]
-            # Round it and convert to Int128
+            x = rand(rng) * 10.0
+            # Round it and convert to Int
             rounded_val = ceil(Int, x)
             # Add to buffer
             buffer += rounded_val
         end
+        buffers[j] = buffer
     end
-    return buffer
+    return sum(buffers)
 end
 
 
 @testset "TestPackage.jl" begin
     # Create a billion floats in a loop, round them, and add to buffer
     @testset "Billion floats test" begin
-        n = 1000
-        M = 1000000
-        seed = rand(UInt)
-        @show seed
-        Random.seed!(seed)
-        rng = Random.GLOBAL_RNG
-        buffer = foo(rng, n, M)
+        n = 100000000
+        M = 100
+        buffer = foo(n, M)
         println("Final buffer value: $buffer")
         
         # Basic sanity check - buffer should be positive and non-zero

@@ -2,12 +2,12 @@ using TestPackage
 using Test, Random
 @show Random.GLOBAL_SEED
 
-function foo(n)
+function foo(n, rng)
     println("Starting to process $n floats...")
     buffer = 0
     @time for i in 1:n
         # Create a random float
-        x = rand() * 100.0
+        x = rand(rng) * 100.0
         # Round it and convert to Int128
         rounded_val = ceil(Int, x)
         # Add to buffer
@@ -24,7 +24,7 @@ end
         seed = rand(UInt)
         @show seed
         rng = MersenneTwister(seed)
-        buffer = foo(n)
+        buffer = foo(rng, n)
         println("Final buffer value: $buffer")
         
         # Basic sanity check - buffer should be positive and non-zero

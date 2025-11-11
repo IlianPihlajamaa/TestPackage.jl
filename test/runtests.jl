@@ -2,7 +2,7 @@ using TestPackage
 using Test, Random
 @show Random.GLOBAL_SEED
 
-function foo(n, rng)
+function foo(rng, n)
     println("Starting to process $n floats...")
     buffer = 0
     @time for i in 1:n

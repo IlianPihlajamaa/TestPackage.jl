@@ -1,54 +1,37 @@
 using TestPackage
 using Test, Random, Base.Threads
 
-function foo(n, M)
-    println("Starting to process $(n*M) floats...")
-    buffers = zeros(Int, M)
-    seed = rand(UInt)
-    @show seed
-    @threads for j in 1:M
-        rng = Random.MersenneTwister(j+seed)
-        buffer = 0
-        for i in 1:n
-            # Create a random float
-            x = rand(rng) * 10.0
-            # Round it and convert to Int
-            rounded_val = ceil(Int, x)
-            # Add to buffer
-            buffer += rounded_val
-        end
-        buffers[j] = buffer
-    end
-    return sum(buffers)
-end
 
+const _skip_heavy_flag = any(arg -> arg == "--skip-heavy", ARGS)
+const _run_heavy_env = lowercase(get(ENV, "RUN_HEAVY_TESTS", "true"))
+const _run_heavy = !_skip_heavy_flag && !(_run_heavy_env in ("false", "0", "no"))
 
 @testset "TestPackage.jl" begin
-    # Create a billion floats in a loop, round them, and add to buffer
-    @testset "Billion floats test" begin
-        n = 100000000
-        M = 100
-        buffer = foo(n, M)
-        println("Final buffer value: $buffer")
-        
-        # Basic sanity check - buffer should be positive and non-zero
-        @test buffer > 0
-        @test buffer isa Int
-
-        x = 4.0
-        x1 = prevfloat(x)
-        x11 = prevfloat(x1)
-        x2 = nextfloat(x)
-        x22 = nextfloat(x2)
-        c = ceil(Int, x)
-        c1 = ceil(Int, x1)
-        c11 = ceil(Int, x11)
-        c2 = ceil(Int, x2)
-        c22 = ceil(Int, x22)
-        @test c == 4
-        @test c1 == 4
-        @test c2 == 5
-        @test c11 == 4
-        @test c22 == 5
+    @testset "Vicsek simulation basics" begin
+        rng = Random.MersenneTwister(1234)
+        sim = VicsekSimulation(64; box_length=32.0, alignment_radius=1.5, noise_amplitude=0.05, rng=rng)
+        @test size(positions(sim)) == (2, 64)
+        @test size(velocities(sim)) == (2, 64)
+        step!(sim, 10)
+        pos = positions(sim)
+        box = sim.box_length
+        @test all(@view(pos[1, :]) .>= 0) && all(@view(pos[1, :]) .< box)
+        @test all(@view(pos[2, :]) .>= 0) && all(@view(pos[2, :]) .< box)
+        vels = velocities(sim)
+        for j in 1:size(vels, 2)
+            speed = hypot(vels[1, j], vels[2, j])
+            @test isapprox(speed, sim.speed; atol=1e-10)
+        end
     end
+    @testset "Visualize does not mutate velocities" begin
+        rng = Random.MersenneTwister(42)
+        sim = VicsekSimulation(16; box_length=8.0, alignment_radius=1.0, noise_amplitude=0.0, rng=rng)
+        # one frame, no stepping inside visualize when frame == 1
+        visualize(sim; frames=1, stride=1, keep_state=false, show_velocity=true, markersize=0.5)
+        vels = velocities(sim)
+        for j in 1:size(vels, 2)
+            @test isapprox(hypot(vels[1, j], vels[2, j]), sim.speed; atol=1e-10)
+        end
+    end
+   
 end

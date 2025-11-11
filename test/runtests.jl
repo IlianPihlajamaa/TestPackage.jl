@@ -21,7 +21,9 @@ end
     # Create a billion floats in a loop, round them, and add to buffer
     @testset "Billion floats test" begin
         n = 1_000_000_000
-
+        seed = rand(UInt)
+        @show seed
+        rng = MersenneTwister(seed)
         buffer = foo(n)
         println("Final buffer value: $buffer")
         

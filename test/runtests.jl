@@ -34,5 +34,21 @@ end
         # Basic sanity check - buffer should be positive and non-zero
         @test buffer > 0
         @test buffer isa Int
+
+        x = 4.0
+        x1 = prevfloat(x)
+        x11 = prevfloat(x1)
+        x2 = nextfloat(x)
+        x22 = nextfloat(x2)
+        c = ceil(Int, x)
+        c1 = ceil(Int, x1)
+        c11 = ceil(Int, x11)
+        c2 = ceil(Int, x2)
+        c22 = ceil(Int, x22)
+        @test c == 4
+        @test c1 == 4
+        @test c2 == 5
+        @test c11 == 4
+        @test c22 == 5
     end
 end
